@@ -36,6 +36,7 @@ public class DevSetting : ISettings
     public ToggleNode HideAddresses { get; set; } = new ToggleNode(false);
     public ToggleNode RegisterInspector { get; set; } = new ToggleNode(true);
     public ToggleNode ShowOldEntityControls { get; set; } = new ToggleNode(false);
+    public PinDisplay PinDisplay { get; set; } = new();
     public ToggleNode Enable { get; set; } = new(false);
 
     public ExclusionSettings ExclusionSettings { get; set; } = new();
@@ -43,6 +44,30 @@ public class DevSetting : ISettings
     public ContentNode<CustomExpressionSettings> CustomExpressions { get; set; } = new ContentNode<CustomExpressionSettings> { ItemFactory = () => new CustomExpressionSettings() };
 
     public bool ToggleWindowState; //Just save the state
+}
+
+[Submenu]
+public class PinDisplay
+{
+    public PinColors Colors { get; set; } = new();
+    public PinSizes PinSizes { get; set; } = new();
+}
+
+[Submenu]
+public class PinColors
+{
+    public ColorNode PinBottom { get; set; } = new ColorNode(Color.White);
+    public ColorNode PinStalk { get; set; } = new ColorNode(Color.White);
+    public ColorNode PinHovered { get; set; } = new ColorNode(Color.Green);
+}
+
+[Submenu]
+public class PinSizes
+{
+    public RangeNode<float> PinHoveredExpansionFactor { get; set; } = new(2, 1, 100);
+    public RangeNode<float> PinBottom { get; set; } = new(4, 1, 100);
+    public RangeNode<float> PinStalk { get; set; } = new(100, 1, 500);
+    public RangeNode<float> PinTopScale { get; set; } = new(1, 1, 100);
 }
 
 [Submenu]
