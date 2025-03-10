@@ -537,7 +537,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 var screenPosPinTop = camera.WorldToScreen(
                     worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
 
-                Graphics.DrawFilledCircleInWorld(worldWithTerrainHeight, pinBottom, pinBottomColor, 30, true);
+                Graphics.DrawFilledCircleInWorld(worldWithTerrainHeight, pinBottom, pinBottomColor);
                 Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
 
                 using (Graphics.SetTextScale(pinTopSize))
