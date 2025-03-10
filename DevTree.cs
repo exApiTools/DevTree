@@ -504,13 +504,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             var camera = GameController.IngameState.Camera;
             var hoverIndex = -1;
             DebugCollection(_debugEntities, "Entities", "Entities", "Entities", true, (i, e) => { hoverIndex = i; });
-            var screenSize = new RectangleF
-            {
-                X = 0,
-                Y = 0,
-                Width = GameController.Window.GetWindowRectangleTimeCache.Size.Width,
-                Height = GameController.Window.GetWindowRectangleTimeCache.Size.Height
-            };
+            var screenRect = GameController.Window.GetWindowRectangleTimeCache with { Location = SharpDX.Vector2.Zero };
 
             for (var index = 0; index < _debugEntities.Count; index++)
             {
@@ -525,17 +519,26 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 if (isHovered)
                     Graphics.DrawLineInWorld(GameController.Player.GridPosNum, _debugEntities[index].GridPosNum, 2f, pinColors.PinHovered.Value);
 
-                if (!IsEntityWithinScreen(screenPosPinBottom, screenSize, 50))
+                if (!screenRect.Inflated(50, 50).Contains(screenPosPinBottom))
                     continue;
 
                 var textBackgroundColor = Color.Black;
-                var pinBottom = isHovered ? pinSizes.PinBottom.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinBottom.Value;
-                var pinStalk = isHovered ? pinSizes.PinStalk.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinStalk.Value;
-                var pinTopSize = isHovered ? pinSizes.PinTopScale.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinTopScale.Value;
-                var pinBottomColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinBottom.Value : pinColors.PinEntityInvalid.Value;
-                var pinStalkColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinStalk.Value : pinColors.PinEntityInvalid.Value;
-                var screenPosPinTop = camera.WorldToScreen(
-                    worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
+                var sizeFactor = isHovered ? pinSizes.PinHoveredExpansionFactor.Value : 1;
+                var pinBottom =  pinSizes.PinBottom.Value * sizeFactor;
+                var pinStalk = pinSizes.PinStalk.Value * sizeFactor;
+                var pinTopSize = pinSizes.PinTopScale.Value * sizeFactor;
+                var pinBottomColor = isHovered 
+                    ? pinColors.PinHovered.Value 
+                    : isValid 
+                        ? pinColors.PinBottom.Value 
+                        : pinColors.PinEntityInvalid.Value;
+                var pinStalkColor = isHovered 
+                    ? pinColors.PinHovered.Value 
+                    : isValid 
+                        ? pinColors.PinStalk.Value 
+                        : pinColors.PinEntityInvalid.Value;
+
+                var screenPosPinTop = camera.WorldToScreen(worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
 
                 Graphics.DrawFilledCircleInWorld(worldWithTerrainHeight, pinBottom, pinBottomColor);
                 Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
@@ -549,16 +552,6 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
         ImGui.EndGroup();
         ImGui.End();
-    }
-    private static bool IsEntityWithinScreen(Vector2 entityPos, RectangleF screenSize, float allowancePX)
-    {
-        var leftBound = screenSize.Left - allowancePX;
-        var rightBound = screenSize.Right + allowancePX;
-        var topBound = screenSize.Top - allowancePX;
-        var bottomBound = screenSize.Bottom + allowancePX;
-
-        return entityPos.X >= leftBound && entityPos.X <= rightBound && entityPos.Y >= topBound &&
-            entityPos.Y <= bottomBound;
     }
 
     private static AssemblyLoadContext CreateAlc()

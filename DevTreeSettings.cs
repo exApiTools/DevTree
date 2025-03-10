@@ -66,8 +66,8 @@ public class PinColors
 public class PinSizes
 {
     public RangeNode<float> PinHoveredExpansionFactor { get; set; } = new(2, 1, 100);
-    public RangeNode<float> PinBottom { get; set; } = new(4, 1, 100);
-    public RangeNode<float> PinStalk { get; set; } = new(100, 1, 500);
+    public RangeNode<float> PinBottom { get; set; } = new(4, 0, 100);
+    public RangeNode<float> PinStalk { get; set; } = new(100, 0, 500);
     public RangeNode<float> PinTopScale { get; set; } = new(1, 1, 100);
 }
 
