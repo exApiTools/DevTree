@@ -534,6 +534,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 var pinTopSize = isHovered ? pinSizes.PinTopScale.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinTopScale.Value;
                 var pinBottomColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinBottom.Value : pinColors.PinEntityInvalid.Value;
                 var pinStalkColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinStalk.Value : pinColors.PinEntityInvalid.Value;
+                var pingTopColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinBottom.Value : pinColors.PinEntityInvalid.Value;
                 var screenPosPinTop = camera.WorldToScreen(
                     worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
 
@@ -542,8 +543,8 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
                 using (Graphics.SetTextScale(pinTopSize))
                     Graphics.DrawTextWithBackground(
-                        $"{index}", screenPosPinTop, isValid ? SharpDX.Color.White : pinColors.PinEntityInvalid.Value with { A = 255 },
-                        FontAlign.Center | FontAlign.VerticalCenter, textBackgroundColor.ToSharpDx());
+                        $"{index}", screenPosPinTop, pingTopColor with { A = 255 }, FontAlign.Center | FontAlign.VerticalCenter,
+                        textBackgroundColor.ToSharpDx());
             }
         }
 
