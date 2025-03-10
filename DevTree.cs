@@ -498,79 +498,82 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             }
         }
 
-
         if (_debugEntities.Count > 0)
         {
             var camera = GameController.IngameState.Camera;
             var hoverIndex = -1;
+            var screenRect = GameController.Window.GetWindowRectangleTimeCache with { Location = SharpDX.Vector2.Zero };
             DebugCollection(_debugEntities, "Entities", "Entities", "Entities", true, (i, e) => { hoverIndex = i; });
-            var screenSize = new RectangleF
-            {
-                X = 0,
-                Y = 0,
-                Width = GameController.Window.GetWindowRectangleTimeCache.Size.Width,
-                Height = GameController.Window.GetWindowRectangleTimeCache.Size.Height
-            };
 
             for (var index = 0; index < _debugEntities.Count; index++)
             {
-                if (index == hoverIndex) continue;
+                if (index == hoverIndex)
+                    continue;
                 DrawEntityPin(index, false);
             }
 
             if (hoverIndex >= 0)
-            {
                 DrawEntityPin(hoverIndex, true);
-            }
 
             void DrawEntityPin(int index, bool isHovered)
             {
                 var entity = _debugEntities[index];
                 var entityPosNum = entity.GridPosNum;
-                var worldWithTerrainHeight = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
-                var screenPosPinBottom = camera.WorldToScreen(worldWithTerrainHeight);
+                var worldPos = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
+                var screenPosPinBottom = camera.WorldToScreen(worldPos);
+                var textDrawPos = screenPosPinBottom;
+
                 var isValid = entity.IsValid;
+                var textBackgroundColor = Color.Black;
                 var pinSizes = Settings.PinDisplay.PinSizes;
                 var pinColors = Settings.PinDisplay.Colors;
+                var pinBottomColor = isHovered
+                    ? pinColors.PinHovered.Value
+                    : isValid
+                        ? pinColors.PinBottom.Value
+                        : pinColors.PinEntityInvalid.Value;
+                var pinStalkColor = isHovered
+                    ? pinColors.PinHovered.Value
+                    : isValid
+                        ? pinColors.PinStalk.Value
+                        : pinColors.PinEntityInvalid.Value;
+                var pinTopColor = isHovered
+                    ? pinColors.PinHovered.Value
+                    : isValid
+                        ? pinColors.PinBottom.Value
+                        : pinColors.PinEntityInvalid.Value;
+
+                var sizeFactor = isHovered ? pinSizes.PinHoveredExpansionFactor.Value : 1;
+                var pinBottom = pinSizes.PinBottom.Value * sizeFactor;
+                var pinTopSize = pinSizes.PinTopScale.Value * sizeFactor;
+                var pinStalk = pinSizes.PinStalk.Value * sizeFactor;
 
                 if (isHovered)
                     Graphics.DrawLineInWorld(GameController.Player.GridPosNum, entityPosNum, 2f, pinColors.PinHovered.Value);
 
-                if (!IsEntityWithinScreen(screenPosPinBottom, screenSize, 50))
+                if (!screenRect.Inflated(50, 50).Contains(screenPosPinBottom))
                     return;
 
-                var textBackgroundColor = Color.Black;
-                var pinBottom = isHovered ? pinSizes.PinBottom.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinBottom.Value;
-                var pinStalk = isHovered ? pinSizes.PinStalk.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinStalk.Value;
-                var pinTopSize = isHovered ? pinSizes.PinTopScale.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinTopScale.Value;
-                var pinBottomColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinBottom.Value : pinColors.PinEntityInvalid.Value;
-                var pinStalkColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinStalk.Value : pinColors.PinEntityInvalid.Value;
-                var pingTopColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinBottom.Value : pinColors.PinEntityInvalid.Value;
-                var screenPosPinTop = camera.WorldToScreen(
-                    worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
+                if (pinStalk > 0)
+                {
+                    var screenPosPinTop = camera.WorldToScreen(worldPos with { Z = worldPos.Z - pinStalk });
 
-                Graphics.DrawFilledCircleInWorld(worldWithTerrainHeight, pinBottom, pinBottomColor);
-                Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
+                    Graphics.DrawFilledCircleInWorld(worldPos, pinBottom, pinBottomColor);
+                    Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
+
+                    textDrawPos = screenPosPinTop;
+                }
 
                 using (Graphics.SetTextScale(pinTopSize))
+                {
                     Graphics.DrawTextWithBackground(
-                        $"{index}", screenPosPinTop, pingTopColor with { A = 255 }, FontAlign.Center | FontAlign.VerticalCenter,
-                        textBackgroundColor.ToSharpDx());
+                        $"{index}", textDrawPos, pinTopColor with { A = 255 }, FontAlign.Center | FontAlign.VerticalCenter, textBackgroundColor.ToSharpDx());
+                }
             }
         }
 
         ImGui.EndGroup();
         ImGui.End();
-    }
-    private static bool IsEntityWithinScreen(Vector2 entityPos, RectangleF screenSize, float allowancePX)
-    {
-        var leftBound = screenSize.Left - allowancePX;
-        var rightBound = screenSize.Right + allowancePX;
-        var topBound = screenSize.Top - allowancePX;
-        var bottomBound = screenSize.Bottom + allowancePX;
-
-        return entityPos.X >= leftBound && entityPos.X <= rightBound && entityPos.Y >= topBound &&
-            entityPos.Y <= bottomBound;
     }
 
     private static AssemblyLoadContext CreateAlc()
