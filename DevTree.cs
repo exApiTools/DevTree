@@ -508,19 +508,30 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
             for (var index = 0; index < _debugEntities.Count; index++)
             {
-                var entityPosNum = _debugEntities[index].GridPosNum;
+                if (index == hoverIndex) continue;
+                DrawEntityPin(index, false);
+            }
+
+            if (hoverIndex >= 0)
+            {
+                DrawEntityPin(hoverIndex, true);
+            }
+
+            void DrawEntityPin(int index, bool isHovered)
+            {
+                var entity = _debugEntities[index];
+                var entityPosNum = entity.GridPosNum;
                 var worldWithTerrainHeight = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
                 var screenPosPinBottom = camera.WorldToScreen(worldWithTerrainHeight);
-                var isHovered = hoverIndex == index;
-                var isValid = _debugEntities[index].IsValid;
+                var isValid = entity.IsValid;
                 var pinSizes = Settings.PinDisplay.PinSizes;
                 var pinColors = Settings.PinDisplay.Colors;
 
                 if (isHovered)
-                    Graphics.DrawLineInWorld(GameController.Player.GridPosNum, _debugEntities[index].GridPosNum, 2f, pinColors.PinHovered.Value);
+                    Graphics.DrawLineInWorld(GameController.Player.GridPosNum, entityPosNum, 2f, pinColors.PinHovered.Value);
 
                 if (!screenRect.Inflated(50, 50).Contains(screenPosPinBottom))
-                    continue;
+                    return;
 
                 var textBackgroundColor = Color.Black;
                 var sizeFactor = isHovered ? pinSizes.PinHoveredExpansionFactor.Value : 1;
@@ -537,6 +548,11 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                     : isValid 
                         ? pinColors.PinStalk.Value 
                         : pinColors.PinEntityInvalid.Value;
+                var pinTopColor = isHovered 
+                    ? pinColors.PinHovered.Value 
+                    : isValid 
+                        ? pinColors.PinBottom.Value 
+                        : pinColors.PinEntityInvalid.Value;
 
                 var screenPosPinTop = camera.WorldToScreen(worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
 
@@ -545,8 +561,8 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
                 using (Graphics.SetTextScale(pinTopSize))
                     Graphics.DrawTextWithBackground(
-                        $"{index}", screenPosPinTop, isValid ? SharpDX.Color.White : pinColors.PinEntityInvalid.Value with { A = 255 },
-                        FontAlign.Center | FontAlign.VerticalCenter, textBackgroundColor.ToSharpDx());
+                        $"{index}", screenPosPinTop, pinTopColor with { A = 255 }, FontAlign.Center | FontAlign.VerticalCenter,
+                        textBackgroundColor.ToSharpDx());
             }
         }
 
