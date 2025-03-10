@@ -514,19 +514,30 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
             for (var index = 0; index < _debugEntities.Count; index++)
             {
-                var entityPosNum = _debugEntities[index].GridPosNum;
+                if (index == hoverIndex) continue;
+                DrawEntityPin(index, false);
+            }
+
+            if (hoverIndex >= 0)
+            {
+                DrawEntityPin(hoverIndex, true);
+            }
+
+            void DrawEntityPin(int index, bool isHovered)
+            {
+                var entity = _debugEntities[index];
+                var entityPosNum = entity.GridPosNum;
                 var worldWithTerrainHeight = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
                 var screenPosPinBottom = camera.WorldToScreen(worldWithTerrainHeight);
-                var isHovered = hoverIndex == index;
-                var isValid = _debugEntities[index].IsValid;
+                var isValid = entity.IsValid;
                 var pinSizes = Settings.PinDisplay.PinSizes;
                 var pinColors = Settings.PinDisplay.Colors;
 
                 if (isHovered)
-                    Graphics.DrawLineInWorld(GameController.Player.GridPosNum, _debugEntities[index].GridPosNum, 2f, pinColors.PinHovered.Value);
+                    Graphics.DrawLineInWorld(GameController.Player.GridPosNum, entityPosNum, 2f, pinColors.PinHovered.Value);
 
                 if (!IsEntityWithinScreen(screenPosPinBottom, screenSize, 50))
-                    continue;
+                    return;
 
                 var textBackgroundColor = Color.Black;
                 var pinBottom = isHovered ? pinSizes.PinBottom.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinBottom.Value;
