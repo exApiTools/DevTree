@@ -528,8 +528,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 if (!IsEntityWithinScreen(screenPosPinBottom, screenSize, 50))
                     continue;
 
-                var borderColor = isHovered ? Color.DarkSlateGray : Color.Black;
-
+                var textBackgroundColor = Color.Black;
                 var pinBottom = isHovered ? pinSizes.PinBottom.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinBottom.Value;
                 var pinStalk = isHovered ? pinSizes.PinStalk.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinStalk.Value;
                 var pinTopSize = isHovered ? pinSizes.PinTopScale.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinTopScale.Value;
@@ -544,7 +543,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 using (Graphics.SetTextScale(pinTopSize))
                     Graphics.DrawTextWithBackground(
                         $"{index}", screenPosPinTop, isValid ? SharpDX.Color.White : pinColors.PinEntityInvalid.Value with { A = 255 },
-                        FontAlign.Center | FontAlign.VerticalCenter, borderColor.ToSharpDx());
+                        FontAlign.Center | FontAlign.VerticalCenter, textBackgroundColor.ToSharpDx());
             }
         }
 
