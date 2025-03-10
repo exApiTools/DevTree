@@ -59,6 +59,7 @@ public class PinColors
     public ColorNode PinBottom { get; set; } = new ColorNode(Color.White);
     public ColorNode PinStalk { get; set; } = new ColorNode(Color.White);
     public ColorNode PinHovered { get; set; } = new ColorNode(Color.Green);
+    public ColorNode PinEntityInvalid { get; set; } = new ColorNode(Color.Red);
 }
 
 [Submenu]

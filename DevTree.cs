@@ -518,6 +518,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 var worldWithTerrainHeight = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
                 var screenPosPinBottom = camera.WorldToScreen(worldWithTerrainHeight);
                 var isHovered = hoverIndex == index;
+                var isValid = _debugEntities[index].IsValid;
                 var pinSizes = Settings.PinDisplay.PinSizes;
                 var pinColors = Settings.PinDisplay.Colors;
 
@@ -532,8 +533,8 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 var pinBottom = isHovered ? pinSizes.PinBottom.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinBottom.Value;
                 var pinStalk = isHovered ? pinSizes.PinStalk.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinStalk.Value;
                 var pinTopSize = isHovered ? pinSizes.PinTopScale.Value * pinSizes.PinHoveredExpansionFactor.Value : pinSizes.PinTopScale.Value;
-                var pinBottomColor = isHovered ? pinColors.PinHovered.Value : pinColors.PinBottom.Value;
-                var pinStalkColor = isHovered ? pinColors.PinHovered.Value : pinColors.PinStalk.Value;
+                var pinBottomColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinBottom.Value : pinColors.PinEntityInvalid.Value;
+                var pinStalkColor = isHovered ? pinColors.PinHovered.Value : isValid ? pinColors.PinStalk.Value : pinColors.PinEntityInvalid.Value;
                 var screenPosPinTop = camera.WorldToScreen(
                     worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
 
@@ -541,7 +542,9 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
 
                 using (Graphics.SetTextScale(pinTopSize))
-                    Graphics.DrawTextWithBackground($"{index}", screenPosPinTop, FontAlign.Center | FontAlign.VerticalCenter, borderColor.ToSharpDx());
+                    Graphics.DrawTextWithBackground(
+                        $"{index}", screenPosPinTop, isValid ? SharpDX.Color.White : pinColors.PinEntityInvalid.Value with { A = 255 },
+                        FontAlign.Center | FontAlign.VerticalCenter, borderColor.ToSharpDx());
             }
         }
 
