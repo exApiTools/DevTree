@@ -504,13 +504,65 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             var camera = GameController.IngameState.Camera;
             var hoverIndex = -1;
             DebugCollection(_debugEntities, "Entities", "Entities", "Entities", true, (i, e) => { hoverIndex = i; });
+            var screenRect = GameController.Window.GetWindowRectangleTimeCache with { Location = Vector2.Zero };
 
             for (var index = 0; index < _debugEntities.Count; index++)
             {
-                var borderColor = hoverIndex == index ? Color.DarkSlateGray : Color.Black;
-                var screenPos = camera.WorldToScreen(_debugEntities[index].Pos);
-                Graphics.DrawBox(screenPos.Translate(-9, -9), screenPos.Translate(18, 18), borderColor);
-                Graphics.DrawText($"{index}", screenPos);
+                if (index == hoverIndex) continue;
+                DrawEntityPin(index, false);
+            }
+
+            if (hoverIndex >= 0)
+            {
+                DrawEntityPin(hoverIndex, true);
+            }
+
+            void DrawEntityPin(int index, bool isHovered)
+            {
+                var entity = _debugEntities[index];
+                var entityPosNum = entity.GridPos;
+                var worldWithTerrainHeight = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
+                var screenPosPinBottom = camera.WorldToScreen(worldWithTerrainHeight);
+                var isValid = entity.IsValid;
+                var pinSizes = Settings.PinDisplay.PinSizes;
+                var pinColors = Settings.PinDisplay.Colors;
+
+                if (isHovered)
+                    Graphics.DrawLineInWorld(GameController.Player.GridPos, entityPosNum, 2f, pinColors.PinHovered.Value);
+
+                if (!screenRect.Inflated(50, 50).Contains(screenPosPinBottom))
+                    return;
+
+                var textBackgroundColor = Color.Black;
+                var sizeFactor = isHovered ? pinSizes.PinHoveredExpansionFactor.Value : 1;
+                var pinBottom =  pinSizes.PinBottom.Value * sizeFactor;
+                var pinStalk = pinSizes.PinStalk.Value * sizeFactor;
+                var pinTopSize = pinSizes.PinTopScale.Value * sizeFactor;
+                var pinBottomColor = isHovered 
+                    ? pinColors.PinHovered.Value 
+                    : isValid 
+                        ? pinColors.PinBottom.Value 
+                        : pinColors.PinEntityInvalid.Value;
+                var pinStalkColor = isHovered 
+                    ? pinColors.PinHovered.Value 
+                    : isValid 
+                        ? pinColors.PinStalk.Value 
+                        : pinColors.PinEntityInvalid.Value;
+                var pinTopColor = isHovered 
+                    ? pinColors.PinHovered.Value 
+                    : isValid 
+                        ? pinColors.PinBottom.Value 
+                        : pinColors.PinEntityInvalid.Value;
+
+                var screenPosPinTop = camera.WorldToScreen(worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
+
+                Graphics.DrawFilledCircleInWorld(worldWithTerrainHeight, pinBottom, pinBottomColor);
+                Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
+
+                using (Graphics.SetTextScale(pinTopSize))
+                    Graphics.DrawTextWithBackground(
+                        $"{index}", screenPosPinTop, pinTopColor.WithA(255), FontAlign.Center | FontAlign.VerticalCenter,
+                        textBackgroundColor);
             }
         }
 
