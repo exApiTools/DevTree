@@ -17,6 +17,7 @@ using ExileCore2.Shared.Enums;
 using ExileCore2.Shared.Helpers;
 using ImGuiNET;
 using System.Drawing;
+using System.Linq.Expressions;
 using System.Runtime.Loader;
 using System.Threading.Tasks;
 using ItemFilterLibrary;
@@ -52,6 +53,13 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
     private readonly Dictionary<string, string> _collectionSearchValues = new Dictionary<string, string>();
     private readonly ConditionalWeakTable<object, string> _objectSearchValues = new ConditionalWeakTable<object, string>();
     private readonly ConditionalWeakTable<object, Dictionary<MethodInfo, ParamsAndResult>> _methodParameterInvokeValues = new();
+
+    private readonly ConditionalWeakTable<Type, ConditionalWeakTable<string, Tuple<Func<object, string>, Exception>>> _customDisplayPerStringCache = new();
+    private readonly ConditionalWeakTable<string, Type> _typeStringToType = new();
+    private readonly Dictionary<Type, Func<object, string>> _customDisplayCache = new();
+    private readonly Dictionary<Type, string> _customDisplayCodeStringCache = [];
+    private readonly ConditionalWeakTable<Type, Func<object, string>> _defaultToStringMethodCache = [];
+
     private List<Entity> _debugEntities = [];
     private string _inputFilter = "";
     private string _guiObjAddr = "";
@@ -67,6 +75,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
     public Func<List<PluginWrapper>> Plugins;
     private Element UIHoverWithFallback => GameController.IngameState.UIHover switch { null or { Address: 0 } => GameController.IngameState.UIHoverElement, var s => s };
 
+    private delegate string CustomDisplay<T>(T o);
     private delegate object CustomExpression(GameController GameController, GameController GC, HoverItemIcon StoredUiHover, Graphics Graphics, Graphics G);
     private static ScriptOptions ScriptOptions => ScriptOptions.Default
         .AddReferences(
@@ -144,6 +153,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         _dynamicTabCache.Clear();
         _methodParameterInvokeValues.Clear();
         _debugEntities.Clear();
+        _customDisplayCache.Clear();
     }
 
     public override void AreaChange(AreaInstance area)
@@ -202,6 +212,9 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
     public override void Render()
     {
+        _customDisplayCodeStringCache.Clear();
+        _customDisplayCache.Clear();
+
         if (Settings.RegisterInspector)
         {
             GameController.RegisterInspector(InspectObject);
@@ -596,6 +609,78 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         return text;
     }
 
+    private string GetToStringValue(object o)
+    {
+        var type = o.GetType();
+
+        var f = _customDisplayCache.GetOrAdd(type, t =>
+        {
+            var code = _customDisplayCodeStringCache.GetOrAdd(t, tt =>
+                Settings.CustomObjectRepresentations.Content
+                    .Where(cor => cor.Enabled)
+                    .Select(cor =>
+                    {
+                        var corType = _typeStringToType.GetValue(cor.Type.Value, ts =>
+                        {
+                            if (string.IsNullOrWhiteSpace(ts))
+                            {
+                                return null;
+                            }
+
+                            return AppDomain.CurrentDomain.GetAssemblies().Select(x => x.GetType(ts)).FirstOrDefault(x => x != null);
+                        });
+                        if (corType == null)
+                        {
+                            return null;
+                        }
+
+                        if (corType == tt)
+                        {
+                            return cor.Code.Value;
+                        }
+
+                        return null;
+                    }).FirstOrDefault(x => x != null));
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return _defaultToStringMethodCache.GetValue(t, tt =>
+                {
+                    var methodInfo = tt.GetMethod("ToString", Type.EmptyTypes);
+                    if (methodInfo != null && (methodInfo.Attributes & MethodAttributes.VtableLayoutMask) == 0)
+                    {
+                        var p = Expression.Parameter(typeof(object));
+                        return Expression.Lambda<Func<object, string>>(Expression.Call(Expression.Convert(p, tt), methodInfo), p).Compile();
+                    }
+
+                    return _ => null;
+                });
+            }
+
+            var (func, ex)= _customDisplayPerStringCache.GetValue(t, _ => [])!.GetValue(code, c =>
+            {
+                try
+                {
+                    var p = Expression.Parameter(typeof(object));
+                    var d = DelegateCompiler.CompileDelegate(typeof(CustomDisplay<>).MakeGenericType(t), c, ScriptOptions, CreateAlc());
+                    return Tuple.Create<Func<object, string>, Exception>(Expression.Lambda<Func<object, string>>(Expression.Call(d.Method, Expression.Convert(p, t)), p).Compile(), null);
+                }
+                catch (Exception ex)
+                {
+                    return Tuple.Create<Func<object, string>, Exception>(null, ex);
+                }
+            })!;
+            if (ex != null)
+            {
+                LogError($"ToString() -> {ex}");
+                return _ => null;
+            }
+
+            return func;
+        });
+
+        return f(o);
+    }
+
     public void Debug(object obj, Type type = null, string name = null)
     {
         try
@@ -610,27 +695,25 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
             if (Convert.GetTypeCode(obj) == TypeCode.Object)
             {
-                var methodInfo = type.GetMethod("ToString", Type.EmptyTypes);
-
-                if (methodInfo != null && (methodInfo.Attributes & MethodAttributes.VtableLayoutMask) == 0)
+                try
                 {
-                    try
+                    if (GetToStringValue(obj) is { } toString)
                     {
-                        if (methodInfo.Invoke(obj, null) is string toString)
+                        if (Settings.HideAddresses && obj is RemoteMemoryObject rmo)
                         {
-                            if (Settings.HideAddresses && obj is RemoteMemoryObject rmo)
-                            {
-                                toString = toString.Replace($"{rmo.Address:X}", $"{rmo.GetAddress(Settings.HideAddresses):X}");
-                            }
-
-                            ImGui.TextColored(Color.Orange.ToImguiVec4(), toString);
+                            toString = toString.Replace($"{rmo.Address:X}", $"{rmo.GetAddress(Settings.HideAddresses):X}");
                         }
+
+                        ImGui.TextColored(Color.Orange.ToImguiVec4(), toString);
+                        ImGui.SameLine();
                     }
-                    catch (Exception ex)
-                    {
-                        LogError($"ToString() -> {ex}");
-                        ImGui.TextColored(Settings.ErrorColor.Value.ToImguiVec4(), "ToString(): <exception thrown>");
-                    }
+
+                    CopyableTextButton(obj.GetType().FullName);
+                }
+                catch (Exception ex)
+                {
+                    LogError($"ToString() -> {ex}");
+                    ImGui.TextColored(Settings.ErrorColor.Value.ToImguiVec4(), "ToString(): <exception thrown>");
                 }
             }
 
@@ -1000,7 +1083,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                              .Cast<object>()
                              .Select((x, i) => (x, i))
                              .Where(x => string.IsNullOrEmpty(search) ||
-                                         ToStringSafe(x)?.Contains(search, StringComparison.InvariantCultureIgnoreCase) == true)
+                                         $"[{x.i}] {ToStringSafe(x.x)}"?.Contains(search, StringComparison.InvariantCultureIgnoreCase) == true)
                              .Skip(skip)
                              .Take(Settings.LimitForCollections))
                 {
@@ -1287,7 +1370,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
     {
         try
         {
-            return obj?.ToString();
+            return obj == null ? null : GetToStringValue(obj);
         }
         catch (Exception ex)
         {

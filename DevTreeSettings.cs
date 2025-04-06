@@ -42,6 +42,7 @@ public class DevSetting : ISettings
     public ExclusionSettings ExclusionSettings { get; set; } = new();
 
     public ContentNode<CustomExpressionSettings> CustomExpressions { get; set; } = new ContentNode<CustomExpressionSettings> { ItemFactory = () => new CustomExpressionSettings() };
+    public ContentNode<CustomObjectRepresentationSettings> CustomObjectRepresentations { get; set; } = new ContentNode<CustomObjectRepresentationSettings> { ItemFactory = () => new CustomObjectRepresentationSettings() };
 
     public bool ToggleWindowState; //Just save the state
 }
@@ -76,6 +77,14 @@ public class CustomExpressionSettings
 {
     public TextNode Expression { get; set; } = new TextNode("");
     public ToggleNode EvaluateEveryFrame { get; set; } = new ToggleNode(false);
+}
+
+[Submenu]
+public class CustomObjectRepresentationSettings
+{
+    public TextNode Type { get; set; } = new TextNode("");
+    public TextNode Code { get; set; } = new TextNode("");
+    public ToggleNode Enabled { get; set; } = new ToggleNode(true);
 }
 
 [Submenu(CollapsedByDefault = true, EnableSelfDrawCollapsing = true, RenderMethod = nameof(Render))]
