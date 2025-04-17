@@ -285,7 +285,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         ImGui.SameLine();
         ImGui.PushItemWidth(200);
         var mem = GameController.Memory;
-        var fileRootAddr = mem.AddressOfProcess + mem.BaseOffsets[OffsetsName.FileRoot];
+        var fileRootAddr = 0L;
         ImGui.Text($"FileRoot: {fileRootAddr:X}");
 
         if (Settings.ShowOldEntityControls)
