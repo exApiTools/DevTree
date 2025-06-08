@@ -882,7 +882,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             {
                 ImGui.Text("OwnerAddress: ");
                 ImGui.SameLine();
-                CopyableTextButton($"{asComponent.OwnerAddress:X}");
+                CopyableTextButton($"{(Settings.HideAddresses ? 0xDEADBEEF : asComponent.OwnerAddress):X}", $"{asComponent.OwnerAddress:X}");
             }
 
             switch (asMemoryObject)
