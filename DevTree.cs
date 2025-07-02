@@ -201,7 +201,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         _debugObjects[name] = o;
     }
 
-    private void InspectObject(object obj, string name, bool makeWindow = true)
+    private void InspectObject(object obj, string name, bool makeWindow)
     {
         if (makeWindow)
         {
