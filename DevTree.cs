@@ -201,12 +201,19 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         _debugObjects[name] = o;
     }
 
-    private void InspectObject(object obj, string name)
+    private void InspectObject(object obj, string name, bool makeWindow = true)
     {
-        if (ImGui.Begin($"Inspect {name}"))
+        if (makeWindow)
+        {
+            if (ImGui.Begin($"Inspect {name}"))
+            {
+                Debug(obj, name: name);
+                ImGui.End();
+            }
+        }
+        else
         {
             Debug(obj, name: name);
-            ImGui.End();
         }
     }
 
@@ -216,16 +223,12 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         _customDisplayCache.Clear();
 
         if (Settings.RegisterInspector)
-        {
             GameController.RegisterInspector(InspectObject);
-        }
 
         if (Settings.ToggleWindowUsingHotkey)
         {
             if (Settings.ToggleWindowKey.PressedOnce())
-            {
                 Settings.ToggleWindowState = !Settings.ToggleWindowState;
-            }
 
             if (!Settings.ToggleWindowState)
                 return;
