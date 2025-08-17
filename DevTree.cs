@@ -76,7 +76,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
     private Element UIHoverWithFallback => GameController.IngameState.UIHover switch { null or { Address: 0 } => GameController.IngameState.UIHoverElement, var s => s };
 
     private delegate string CustomDisplay<T>(T o);
-    private delegate object CustomExpression(GameController GameController, GameController GC, HoverItemIcon StoredUiHover, Graphics Graphics, Graphics G);
+    private delegate object CustomExpression(GameController GameController, GameController GC, HoverItemIcon StoredUiHover, HoverItemIcon UiHover, Graphics Graphics, Graphics G);
     private static ScriptOptions ScriptOptions => ScriptOptions.Default
         .AddReferences(
             typeof(Vector2).Assembly,
@@ -491,8 +491,44 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                     if (delegateTask.IsCompletedSuccessfully)
                     {
                         Debug(_evalCustomExpressionEveryFrame 
-                            ? delegateTask.Result(GameController, GameController, _storedUiHover, Graphics, Graphics) 
-                            : _customExpressionObject ??= delegateTask.Result(GameController, GameController, _storedUiHover, Graphics, Graphics));
+                            ? delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics) 
+                            : _customExpressionObject ??= delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics));
+                    }
+                    else if (delegateTask.IsFaulted)
+                    {
+                        using (ImGuiHelpers.UseStyleColor(ImGuiCol.Text, Settings.ErrorColor.Value.ToImguiVec4()))
+                            ImGui.TextUnformatted($"Compilation failed: {delegateTask.Exception}");
+                    }
+                    else
+                    {
+                        ImGui.Text("Loading...");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Error in custom expression handler: {ex}");
+                }
+
+                ImGui.Unindent();
+                ImGui.TreePop();
+            }
+        }
+
+        foreach (var customExpression in Settings.CustomExpressions.Content)
+        {
+            if (ImGui.TreeNodeEx($"{customExpression.Expression.Value.Replace("%", "").Replace("#", "")}"))
+            {
+                ImGui.Indent();
+
+                try
+                {
+                    var delegateTask = _compileCache.GetValue(customExpression.Expression.Value,
+                        s => Task.Run(() => DelegateCompiler.CompileDelegate<CustomExpression>(s, ScriptOptions, CreateAlc())));
+                    if (delegateTask.IsCompletedSuccessfully)
+                    {
+                        Debug(customExpression.EvaluateEveryFrame
+                            ? delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics)
+                            : customExpression.EvaluatedObject ??= delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics));
                     }
                     else if (delegateTask.IsFaulted)
                     {
@@ -585,6 +621,8 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         ImGui.EndGroup();
         ImGui.End();
     }
+
+    private HoverItemIcon UiHoverWithFallbackItemIcon => UIHoverWithFallback?.AsObject<HoverItemIcon>();
 
     private static AssemblyLoadContext CreateAlc()
     {

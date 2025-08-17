@@ -77,6 +77,9 @@ public class CustomExpressionSettings
 {
     public TextNode Expression { get; set; } = new TextNode("");
     public ToggleNode EvaluateEveryFrame { get; set; } = new ToggleNode(false);
+
+    [IgnoreMenu]
+    internal object EvaluatedObject { get; set; }
 }
 
 [Submenu]
