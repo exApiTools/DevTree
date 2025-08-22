@@ -100,6 +100,7 @@ public class ExclusionSettings
         new ExcludedMember { ContainingType = "ExileCore2.PoEMemory.RemoteMemoryObject", Name = "pCache", Type = ExcludedMemberType.Property },
         new ExcludedMember { ContainingType = "ExileCore2.PoEMemory.RemoteMemoryObject", Name = "pM", Type = ExcludedMemberType.Property },
         new ExcludedMember { ContainingType = "ExileCore2.PoEMemory.RemoteMemoryObject", Name = "pTheGame", Type = ExcludedMemberType.Property },
+        new ExcludedMember { ContainingType = "ExileCore2.PoEMemory.Component", Name = "OwnerAddress", Type = ExcludedMemberType.Property },
     ];
 
     public List<ExcludedMember> Exclusions { get; set; }
