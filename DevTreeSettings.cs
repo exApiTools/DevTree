@@ -17,8 +17,9 @@ namespace DevTree;
 
 public class DevSetting : ISettings
 {
-    public ToggleNode ToggleWindowUsingHotkey { get; set; } = new ToggleNode(false);
-
+    [JsonIgnore]
+    [Menu("Show/hide window")]
+    public ButtonNode ShowHideWindowButton { get; set; }
     public HotkeyNodeV2 ToggleWindowKey { get; set; } = Keys.NumPad9;
 
     public HotkeyNodeV2 DebugUIHoverItemKey { get; set; } = Keys.NumPad5;
@@ -45,6 +46,11 @@ public class DevSetting : ISettings
     public ContentNode<CustomObjectRepresentationSettings> CustomObjectRepresentations { get; set; } = new ContentNode<CustomObjectRepresentationSettings> { ItemFactory = () => new CustomObjectRepresentationSettings() };
 
     public bool ToggleWindowState; //Just save the state
+
+    public DevSetting()
+    {
+        ShowHideWindowButton = new ButtonNode(){OnPressed = ()=>ToggleWindowState = !ToggleWindowState};
+    }
 }
 
 [Submenu]
