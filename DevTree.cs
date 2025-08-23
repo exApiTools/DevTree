@@ -212,14 +212,11 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         if (Settings.RegisterInspector)
             GameController.RegisterInspector(InspectObject);
 
-        if (Settings.ToggleWindowUsingHotkey)
-        {
-            if (Settings.ToggleWindowKey.PressedOnce())
-                Settings.ToggleWindowState = !Settings.ToggleWindowState;
+        if (Settings.ToggleWindowKey.PressedOnce())
+            Settings.ToggleWindowState = !Settings.ToggleWindowState;
 
-            if (!Settings.ToggleWindowState)
-                return;
-        }
+        if (!Settings.ToggleWindowState)
+            return;
 
         if (Settings.DebugUIHoverItemKey.PressedOnce())
         {
@@ -264,10 +261,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
         if (Settings.Enable != _windowState)
         {
-            if (!Settings.ToggleWindowUsingHotkey)
-                Settings.Enable.Value = _windowState;
-            else
-                Settings.ToggleWindowState = _windowState;
+            Settings.ToggleWindowState = _windowState;
         }
 
         if (ImGui.Button("Reload")) InitObjects();
@@ -648,6 +642,13 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             }
 
             type ??= obj.GetType();
+            if (IsSimpleType(type))
+            {
+                ImGui.Text("Object: ");
+                ImGui.SameLine();
+                var propertyVal = obj.ToString();
+                CopyableTextButton(propertyVal);
+            }
 
             if (Convert.GetTypeCode(obj) == TypeCode.Object)
             {
