@@ -18,6 +18,7 @@ using ExileCore.Shared.Helpers;
 using ImGuiNET;
 using System.Drawing;
 using System.Runtime.Loader;
+using System.Text.Json;
 using System.Threading.Tasks;
 using ItemFilterLibrary;
 using Microsoft.CodeAnalysis.Scripting;
@@ -777,6 +778,29 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                     if (cachedValue != null)
                     {
                         DebugObjectProperties(cachedValue, cachedValue.GetType(), objectFilter);
+                    }
+                }
+
+                if (remoteMemoryObject is Element el)
+                {
+                    if (ImGui.Button("Log visual tree"))
+                    {
+                        object GetLogObject(Element e)
+                        {
+                            return new
+                            {
+                                pos = e.GetClientRectCache,
+                                text = e.Text,
+                                children = e.Children.Select(GetLogObject).ToList(),
+                                ent = e.Entity switch { { Address: 0 } => null, var o => o?.Metadata },
+                            };
+                        }
+
+                        Task.Run(() =>
+                        {
+                            var o = GetLogObject(el);
+                            DebugWindow.LogMsg(JsonSerializer.Serialize(o));
+                        });
                     }
                 }
             }
