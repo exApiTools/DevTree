@@ -1115,6 +1115,12 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                     ImGui.SameLine();
                 }
 
+                if (Settings.ShowObsoleteIndicator && property.GetCustomAttribute<ObsoleteAttribute>() != null)
+                {
+                    ImGui.TextColored(Color.Yellow.ToImguiVec4(), "[Obsolete]");
+                    ImGui.SameLine();
+                }
+
                 var propertyValue = property.GetValue(obj);
 
                 if (propertyValue == null)
