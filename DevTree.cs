@@ -360,267 +360,270 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             _customExpressionObject = null;
         }
 
-        ImGui.BeginGroup();
-        
-        foreach (var o in _debugObjects)
+        if (ImGui.BeginChild("tree"))
         {
-            if (TreeNode($"{o.Key}##0", o.Value))
+            foreach (var o in _debugObjects)
+            {
+                if (TreeNode($"{o.Key}##0", o.Value))
+                {
+                    ImGui.Indent();
+
+                    try
+                    {
+                        Debug(o.Value, new MutableId(), $"do:{o.Key}", name: o.Key);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWindow.LogError($"{Name} -> {e}");
+                    }
+
+                    finally
+                    {
+                        ImGui.Unindent();
+                        ImGui.TreePop();
+                    }
+                }
+            }
+
+            if (ImGui.TreeNode("UIHover"))
             {
                 ImGui.Indent();
 
                 try
                 {
-                    Debug(o.Value, new MutableId(), $"do:{o.Key}", name: o.Key);
+                    Debug(UIHoverWithFallback, new MutableId(), "uihover");
                 }
                 catch (Exception e)
                 {
-                    DebugWindow.LogError($"{Name} -> {e}");
+                    DebugWindow.LogError($"UIHover -> {e}");
                 }
-
                 finally
                 {
                     ImGui.Unindent();
                     ImGui.TreePop();
                 }
             }
-        }
 
-        if (ImGui.TreeNode("UIHover"))
-        {
-            ImGui.Indent();
+            if (ImGui.TreeNode("UIHover as Item"))
+            {
+                ImGui.Indent();
 
-            try
-            {
-                Debug(UIHoverWithFallback, new MutableId(), "uihover");
-            }
-            catch (Exception e)
-            {
-                DebugWindow.LogError($"UIHover -> {e}");
-            }
-            finally
-            {
-                ImGui.Unindent();
-                ImGui.TreePop();
-            }
-        }
-
-        if (ImGui.TreeNode("UIHover as Item"))
-        {
-            ImGui.Indent();
-
-            try
-            {
-                Debug(UIHoverWithFallback.AsObject<HoverItemIcon>(), new MutableId(), "uihoveritem");
-            }
-            catch (Exception e)
-            {
-                DebugWindow.LogError($"UIHover -> {e}");
-            }
-            finally
-            {
-                ImGui.Unindent();
-                ImGui.TreePop();
-            }
-        }
-
-        if (ImGui.TreeNode("Only visible InGameUi"))
-        {
-            ImGui.Indent();
-            var os = GameController.IngameState.IngameUi.Children.Where(x => x.IsVisibleLocal);
-
-            foreach (var el in os)
-            {
                 try
                 {
-                    if (TreeNode($"{el.GetAddress(Settings.HideAddresses):X} - {el.X}:{el.Y},{el.Width}:{el.Height}##{el.GetHashCode()}", el))
-                    {
-                        var keyForOffset = $"{el.Address}{el.GetHashCode()}";
-
-                        if (_dynamicTabCache.TryGetValue(keyForOffset, out var offset))
-                            ImGui.Text($"Offset: {offset:X}");
-                        else
-                        {
-                            var IngameUi = GameController.IngameState.IngameUi;
-                            var pointers = IngameUi.M.ReadPointersArray(IngameUi.Address, IngameUi.Address + 10000);
-
-                            for (var i = 0; i < pointers.Count; i++)
-                            {
-                                var p = pointers[i];
-                                if (p == el.Address) _dynamicTabCache[keyForOffset] = i * 0x8;
-                            }
-                        }
-
-                        Debug(el, new MutableId(), $"visIgUi:{el.Address:X}");
-                        ImGui.TreePop();
-                    }
-
-                    if (ImGui.IsItemHovered())
-                    {
-                        var clientRectCache = el.GetClientRectCache;
-                        Graphics.DrawFrame(clientRectCache, Settings.FrameColor, 1);
-
-                        foreach (var element in el.Children)
-                        {
-                            clientRectCache = element.GetClientRectCache;
-                            Graphics.DrawFrame(clientRectCache, Settings.FrameColor, 1);
-                        }
-                    }
+                    Debug(UIHoverWithFallback.AsObject<HoverItemIcon>(), new MutableId(), "uihoveritem");
                 }
                 catch (Exception e)
                 {
                     DebugWindow.LogError($"UIHover -> {e}");
                 }
+                finally
+                {
+                    ImGui.Unindent();
+                    ImGui.TreePop();
+                }
             }
 
-            ImGui.Unindent();
-            ImGui.TreePop();
-        }
-
-        if (!string.IsNullOrWhiteSpace(_customExpressionInput))
-        {
-            if (ImGui.TreeNodeEx("Custom expression", ImGuiTreeNodeFlags.DefaultOpen))
+            if (ImGui.TreeNode("Only visible InGameUi"))
             {
                 ImGui.Indent();
+                var os = GameController.IngameState.IngameUi.Children.Where(x => x.IsVisibleLocal);
 
-                try
+                foreach (var el in os)
                 {
-                    var delegateTask = _compileCache.GetValue(_customExpressionInput,
-                        s => Task.Run(() => DelegateCompiler.CompileDelegate<CustomExpression>(s, ScriptOptions, CreateAlc())));
-                    if (delegateTask.IsCompletedSuccessfully)
+                    try
                     {
-                        Debug(_evalCustomExpressionEveryFrame 
-                            ? delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics) 
-                            : _customExpressionObject ??= delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics), 
-                            new MutableId(), 
-                            $"customExpr.{_customExpressionInput}");
+                        if (TreeNode($"{el.GetAddress(Settings.HideAddresses):X} - {el.X}:{el.Y},{el.Width}:{el.Height}##{el.GetHashCode()}", el))
+                        {
+                            var keyForOffset = $"{el.Address}{el.GetHashCode()}";
+
+                            if (_dynamicTabCache.TryGetValue(keyForOffset, out var offset))
+                                ImGui.Text($"Offset: {offset:X}");
+                            else
+                            {
+                                var IngameUi = GameController.IngameState.IngameUi;
+                                var pointers = IngameUi.M.ReadPointersArray(IngameUi.Address, IngameUi.Address + 10000);
+
+                                for (var i = 0; i < pointers.Count; i++)
+                                {
+                                    var p = pointers[i];
+                                    if (p == el.Address) _dynamicTabCache[keyForOffset] = i * 0x8;
+                                }
+                            }
+
+                            Debug(el, new MutableId(), $"visIgUi:{el.Address:X}");
+                            ImGui.TreePop();
+                        }
+
+                        if (ImGui.IsItemHovered())
+                        {
+                            var clientRectCache = el.GetClientRectCache;
+                            Graphics.DrawFrame(clientRectCache, Settings.FrameColor, 1);
+
+                            foreach (var element in el.Children)
+                            {
+                                clientRectCache = element.GetClientRectCache;
+                                Graphics.DrawFrame(clientRectCache, Settings.FrameColor, 1);
+                            }
+                        }
                     }
-                    else if (delegateTask.IsFaulted)
+                    catch (Exception e)
                     {
-                        using (ImGuiHelpers.UseStyleColor(ImGuiCol.Text, Settings.ErrorColor.Value.ToImguiVec4()))
-                            ImGui.TextUnformatted($"Compilation failed: {delegateTask.Exception}");
+                        DebugWindow.LogError($"UIHover -> {e}");
                     }
-                    else
-                    {
-                        ImGui.Text("Loading...");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError($"Error in custom expression handler: {ex}");
                 }
 
                 ImGui.Unindent();
                 ImGui.TreePop();
             }
-        }
 
-        foreach (var customExpression in Settings.CustomExpressions.Content)
-        {
-            if (ImGui.TreeNodeEx($"{customExpression.Expression.Value.Replace("%", "").Replace("#", "")}"))
+            if (!string.IsNullOrWhiteSpace(_customExpressionInput))
             {
-                ImGui.Indent();
-
-                try
+                if (ImGui.TreeNodeEx("Custom expression", ImGuiTreeNodeFlags.DefaultOpen))
                 {
-                    var delegateTask = _compileCache.GetValue(customExpression.Expression.Value,
-                        s => Task.Run(() => DelegateCompiler.CompileDelegate<CustomExpression>(s, ScriptOptions, CreateAlc())));
-                    if (delegateTask.IsCompletedSuccessfully)
+                    ImGui.Indent();
+
+                    try
                     {
-                        Debug(customExpression.EvaluateEveryFrame
-                            ? delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics)
-                            : customExpression.EvaluatedObject ??= delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics),
-                            new MutableId(),
-                            $"customExpr.{customExpression.Expression.Value}");
+                        var delegateTask = _compileCache.GetValue(_customExpressionInput,
+                            s => Task.Run(() => DelegateCompiler.CompileDelegate<CustomExpression>(s, ScriptOptions, CreateAlc())));
+                        if (delegateTask.IsCompletedSuccessfully)
+                        {
+                            Debug(_evalCustomExpressionEveryFrame
+                                    ? delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics)
+                                    : _customExpressionObject ??=
+                                        delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics),
+                                new MutableId(),
+                                $"customExpr.{_customExpressionInput}");
+                        }
+                        else if (delegateTask.IsFaulted)
+                        {
+                            using (ImGuiHelpers.UseStyleColor(ImGuiCol.Text, Settings.ErrorColor.Value.ToImguiVec4()))
+                                ImGui.TextUnformatted($"Compilation failed: {delegateTask.Exception}");
+                        }
+                        else
+                        {
+                            ImGui.Text("Loading...");
+                        }
                     }
-                    else if (delegateTask.IsFaulted)
+                    catch (Exception ex)
                     {
-                        using (ImGuiHelpers.UseStyleColor(ImGuiCol.Text, Settings.ErrorColor.Value.ToImguiVec4()))
-                            ImGui.TextUnformatted($"Compilation failed: {delegateTask.Exception}");
+                        LogError($"Error in custom expression handler: {ex}");
                     }
-                    else
-                    {
-                        ImGui.Text("Loading...");
-                    }
+
+                    ImGui.Unindent();
+                    ImGui.TreePop();
                 }
-                catch (Exception ex)
+            }
+
+            foreach (var customExpression in Settings.CustomExpressions.Content)
+            {
+                if (ImGui.TreeNodeEx($"{customExpression.Expression.Value.Replace("%", "").Replace("#", "")}"))
                 {
-                    LogError($"Error in custom expression handler: {ex}");
+                    ImGui.Indent();
+
+                    try
+                    {
+                        var delegateTask = _compileCache.GetValue(customExpression.Expression.Value,
+                            s => Task.Run(() => DelegateCompiler.CompileDelegate<CustomExpression>(s, ScriptOptions, CreateAlc())));
+                        if (delegateTask.IsCompletedSuccessfully)
+                        {
+                            Debug(customExpression.EvaluateEveryFrame
+                                    ? delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics)
+                                    : customExpression.EvaluatedObject ??=
+                                        delegateTask.Result(GameController, GameController, _storedUiHover, UiHoverWithFallbackItemIcon, Graphics, Graphics),
+                                new MutableId(),
+                                $"customExpr.{customExpression.Expression.Value}");
+                        }
+                        else if (delegateTask.IsFaulted)
+                        {
+                            using (ImGuiHelpers.UseStyleColor(ImGuiCol.Text, Settings.ErrorColor.Value.ToImguiVec4()))
+                                ImGui.TextUnformatted($"Compilation failed: {delegateTask.Exception}");
+                        }
+                        else
+                        {
+                            ImGui.Text("Loading...");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Error in custom expression handler: {ex}");
+                    }
+
+                    ImGui.Unindent();
+                    ImGui.TreePop();
+                }
+            }
+
+
+            if (_debugEntities.Count > 0)
+            {
+                var camera = GameController.IngameState.Camera;
+                var hoverIndex = -1;
+                DebugCollection(_debugEntities, new MutableId(), "Entities", "Entities", true, (i, e) => { hoverIndex = i; });
+                var screenRect = GameController.Window.GetWindowRectangleTimeCache with { Location = Vector2.Zero };
+
+                for (var index = 0; index < _debugEntities.Count; index++)
+                {
+                    if (index == hoverIndex) continue;
+                    DrawEntityPin(index, false);
                 }
 
-                ImGui.Unindent();
-                ImGui.TreePop();
+                if (hoverIndex >= 0)
+                {
+                    DrawEntityPin(hoverIndex, true);
+                }
+
+                void DrawEntityPin(int index, bool isHovered)
+                {
+                    var entity = _debugEntities[index];
+                    var entityPosNum = entity.GridPos;
+                    var worldWithTerrainHeight = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
+                    var screenPosPinBottom = camera.WorldToScreen(worldWithTerrainHeight);
+                    var isValid = entity.IsValid;
+                    var pinSizes = Settings.PinDisplay.PinSizes;
+                    var pinColors = Settings.PinDisplay.Colors;
+
+                    if (isHovered)
+                        Graphics.DrawLineInWorld(GameController.Player.GridPos, entityPosNum, 2f, pinColors.PinHovered.Value);
+
+                    if (!screenRect.Inflated(50, 50).Contains(screenPosPinBottom))
+                        return;
+
+                    var textBackgroundColor = Color.Black;
+                    var sizeFactor = isHovered ? pinSizes.PinHoveredExpansionFactor.Value : 1;
+                    var pinBottom = pinSizes.PinBottom.Value * sizeFactor;
+                    var pinStalk = pinSizes.PinStalk.Value * sizeFactor;
+                    var pinTopSize = pinSizes.PinTopScale.Value * sizeFactor;
+                    var pinBottomColor = isHovered
+                        ? pinColors.PinHovered.Value
+                        : isValid
+                            ? pinColors.PinBottom.Value
+                            : pinColors.PinEntityInvalid.Value;
+                    var pinStalkColor = isHovered
+                        ? pinColors.PinHovered.Value
+                        : isValid
+                            ? pinColors.PinStalk.Value
+                            : pinColors.PinEntityInvalid.Value;
+                    var pinTopColor = isHovered
+                        ? pinColors.PinHovered.Value
+                        : isValid
+                            ? pinColors.PinBottom.Value
+                            : pinColors.PinEntityInvalid.Value;
+
+                    var screenPosPinTop = camera.WorldToScreen(worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
+
+                    Graphics.DrawFilledCircleInWorld(worldWithTerrainHeight, pinBottom, pinBottomColor);
+                    Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
+
+                    using (Graphics.SetTextScale(pinTopSize))
+                        Graphics.DrawTextWithBackground(
+                            $"{index}", screenPosPinTop, pinTopColor.WithA(255), FontAlign.Center | FontAlign.VerticalCenter,
+                            textBackgroundColor);
+                }
             }
         }
 
-
-        if (_debugEntities.Count > 0)
-        {
-            var camera = GameController.IngameState.Camera;
-            var hoverIndex = -1;
-            DebugCollection(_debugEntities, new MutableId(), "Entities", "Entities", true, (i, e) => { hoverIndex = i; });
-            var screenRect = GameController.Window.GetWindowRectangleTimeCache with { Location = Vector2.Zero };
-
-            for (var index = 0; index < _debugEntities.Count; index++)
-            {
-                if (index == hoverIndex) continue;
-                DrawEntityPin(index, false);
-            }
-
-            if (hoverIndex >= 0)
-            {
-                DrawEntityPin(hoverIndex, true);
-            }
-
-            void DrawEntityPin(int index, bool isHovered)
-            {
-                var entity = _debugEntities[index];
-                var entityPosNum = entity.GridPos;
-                var worldWithTerrainHeight = GameController.IngameState.Data.ToWorldWithTerrainHeight(entityPosNum);
-                var screenPosPinBottom = camera.WorldToScreen(worldWithTerrainHeight);
-                var isValid = entity.IsValid;
-                var pinSizes = Settings.PinDisplay.PinSizes;
-                var pinColors = Settings.PinDisplay.Colors;
-
-                if (isHovered)
-                    Graphics.DrawLineInWorld(GameController.Player.GridPos, entityPosNum, 2f, pinColors.PinHovered.Value);
-
-                if (!screenRect.Inflated(50, 50).Contains(screenPosPinBottom))
-                    return;
-
-                var textBackgroundColor = Color.Black;
-                var sizeFactor = isHovered ? pinSizes.PinHoveredExpansionFactor.Value : 1;
-                var pinBottom =  pinSizes.PinBottom.Value * sizeFactor;
-                var pinStalk = pinSizes.PinStalk.Value * sizeFactor;
-                var pinTopSize = pinSizes.PinTopScale.Value * sizeFactor;
-                var pinBottomColor = isHovered 
-                    ? pinColors.PinHovered.Value 
-                    : isValid 
-                        ? pinColors.PinBottom.Value 
-                        : pinColors.PinEntityInvalid.Value;
-                var pinStalkColor = isHovered 
-                    ? pinColors.PinHovered.Value 
-                    : isValid 
-                        ? pinColors.PinStalk.Value 
-                        : pinColors.PinEntityInvalid.Value;
-                var pinTopColor = isHovered 
-                    ? pinColors.PinHovered.Value 
-                    : isValid 
-                        ? pinColors.PinBottom.Value 
-                        : pinColors.PinEntityInvalid.Value;
-
-                var screenPosPinTop = camera.WorldToScreen(worldWithTerrainHeight with { Z = worldWithTerrainHeight.Z - pinStalk });
-
-                Graphics.DrawFilledCircleInWorld(worldWithTerrainHeight, pinBottom, pinBottomColor);
-                Graphics.DrawLine(screenPosPinBottom, screenPosPinTop, 2f, pinStalkColor);
-
-                using (Graphics.SetTextScale(pinTopSize))
-                    Graphics.DrawTextWithBackground(
-                        $"{index}", screenPosPinTop, pinTopColor.WithA(255), FontAlign.Center | FontAlign.VerticalCenter,
-                        textBackgroundColor);
-            }
-        }
-
-        ImGui.EndGroup();
+        ImGui.EndChild();
         ImGui.End();
     }
 
