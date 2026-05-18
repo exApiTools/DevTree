@@ -75,6 +75,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
     private bool _windowState;
     private object _lastHoveredMenuItem = null;
     private bool _showExtendedInfo = false;
+    private bool _showNumbersAsHex = false;
     private string _customExpressionInput = "";
     private bool _evalCustomExpressionEveryFrame = true;
     private object _customExpressionObject;
@@ -348,6 +349,9 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         ImGui.SameLine();
 
         ImGui.Checkbox("Extended info", ref _showExtendedInfo);
+
+        ImGui.SameLine();
+        ImGui.Checkbox("Hex numbers", ref _showNumbersAsHex);
 
 
         if (!string.IsNullOrEmpty(_customExpressionInput))
@@ -824,6 +828,11 @@ DebugCollection(_debugEntities, new MutableId(), "Entities", "Entities", true, (
         }
     }
 
+    private string ToStringWithHex(object obj, Type type)
+    {
+        return _showNumbersAsHex && IsNumberType(type) ? (obj as IFormattable)?.ToString("X", CultureInfo.InvariantCulture) ?? obj.ToString() : obj.ToString();
+    }
+
     private void Debug(object obj, MutableId id, string idPart, Type type = null, string name = null)
     {
         id.Push(idPart);
@@ -854,7 +863,7 @@ DebugCollection(_debugEntities, new MutableId(), "Entities", "Entities", true, (
         {
             ImGui.Text("Object: ");
             ImGui.SameLine();
-            var propertyVal = obj.ToString();
+            var propertyVal = ToStringWithHex(obj, type);
             CopyableTextButton(propertyVal);
         }
 
@@ -1056,7 +1065,7 @@ DebugCollection(_debugEntities, new MutableId(), "Entities", "Entities", true, (
             {
                 ImGui.Text($"{field.Name}: ");
                 ImGui.SameLine();
-                CopyableTextButton($"{fieldValue}");
+                CopyableTextButton($"{ToStringWithHex(fieldValue, field.FieldType)}");
             }
             else if (TreeNode($"{field.Name} {type.FullName}", fieldValue))
             {
@@ -1188,7 +1197,7 @@ DebugCollection(_debugEntities, new MutableId(), "Entities", "Entities", true, (
                 {
                     ImGui.Text($"{propertyName}: ");
                     ImGui.SameLine();
-                    var propertyVal = propertyName == "Address" ? ((long)propertyValue).ToString("X") : propertyValue.ToString();
+                    var propertyVal = propertyName == "Address" ? ((long)propertyValue).ToString("X") : ToStringWithHex(propertyValue, propertyType);
                     CopyableTextButton(propertyVal);
                 }
                 else
@@ -1356,7 +1365,7 @@ foreach (var el in collection)
                 };
 
                 if (IsSimpleType(colType))
-                    CopyableTextButton(item.ToString());
+                    CopyableTextButton(ToStringWithHex(item, colType));
                 else
                 {
                     Element element = null;
