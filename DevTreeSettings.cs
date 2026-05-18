@@ -37,6 +37,7 @@ public class DevSetting : ISettings
     public ToggleNode HideAddresses { get; set; } = new ToggleNode(false);
     public ToggleNode RegisterInspector { get; set; } = new ToggleNode(true);
     public ToggleNode ShowOldEntityControls { get; set; } = new ToggleNode(false);
+    public ToggleNode ShowObsoleteIndicator { get; set; } = new ToggleNode(true);
     public PinDisplay PinDisplay { get; set; } = new();
     public ToggleNode Enable { get; set; } = new(false);
 
