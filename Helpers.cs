@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Drawing;
 using ExileCore2.Shared.Helpers;
@@ -23,6 +24,26 @@ public partial class DevPlugin
         typeof(System.Numerics.Vector4),
         typeof(Vector2i),
     ];
+
+    private static readonly FrozenSet<Type> NumberTypes = new[]
+    {
+        typeof(System.Byte),
+        typeof(System.Char),
+        typeof(System.Int128),
+        typeof(System.Int16),
+        typeof(System.Int32),
+        typeof(System.Int64),
+        typeof(System.IntPtr),
+        typeof(System.Numerics.BigInteger),
+        typeof(System.SByte),
+        typeof(System.UInt128),
+        typeof(System.UInt16),
+        typeof(System.UInt32),
+        typeof(System.UInt64),
+        typeof(System.UIntPtr),
+    }.ToFrozenSet();
+
+    public static bool IsNumberType(Type type) => NumberTypes.Contains(type);
 
     public static bool IsEnumerable(Type type)
     {
