@@ -830,7 +830,7 @@ DebugCollection(_debugEntities, new MutableId(), "Entities", "Entities", true, (
 
     private string ToStringWithHex(object obj, Type type)
     {
-        return _showNumbersAsHex && IsNumberType(type) ? (obj as IFormattable)?.ToString("X", CultureInfo.InvariantCulture) ?? obj.ToString() : obj.ToString();
+        return _showNumbersAsHex && IsNumberType(type) ? (obj as IFormattable)?.ToString("X", CultureInfo.InvariantCulture) ?? obj?.ToString() : obj?.ToString();
     }
 
     private void Debug(object obj, MutableId id, string idPart, Type type = null, string name = null)
