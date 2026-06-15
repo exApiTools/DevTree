@@ -329,6 +329,15 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 .ToList();
         }
 
+        if (_debugEntities is { Count: > 0 })
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Clear entities"))
+            {
+                _debugEntities.Clear();
+            }
+        }
+
         ImGui.SameLine();
 
         ImGui.Checkbox("Extended info", ref _showExtendedInfo);
@@ -1077,7 +1086,10 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
                             var g = generic.Invoke(e, null);
 
-                            if (TreeNode(component.Key, g))
+                            var nodeOpen = TreeNode(component.Key, g);
+                            ImGui.SameLine();
+                            CopyableTextButton($"{component.Value:X}");
+                            if (nodeOpen)
                             {
                                 Debug(g, id, $"component.{component.Key}");
                                 ImGui.TreePop();
