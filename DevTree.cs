@@ -46,6 +46,12 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
     };
 
     private static readonly MethodInfo GetComponentMethod = typeof(Entity).GetMethod("GetComponent");
+
+    private static readonly Dictionary<ushort, (string, Func<long, RemoteMemoryObject>)> HashComponentMap = new Dictionary<ushort, (string, Func<long, RemoteMemoryObject>)>
+    {
+        [0x87B2] = ("Expedition2EncounterData", RemoteMemoryObject.GetObjectStatic<Expedition2EncounterData>)
+    };
+
     private readonly Dictionary<string, MethodInfo> _genericMethodCache = new Dictionary<string, MethodInfo>();
     private readonly Dictionary<string, object> _debugObjects = new Dictionary<string, object>();
     private readonly Dictionary<string, object> _dynamicTabCache = new Dictionary<string, object>();
@@ -1105,6 +1111,26 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                         {
                             var BIT = GameController.Files.BaseItemTypes.Translate(e.Path);
                             Debug(BIT, id, "itemInfo");
+                            ImGui.TreePop();
+                        }
+                    }
+
+                    if (e.HashComponents is { Count: > 0 } hashComponents && hashComponents.Keys.Any(x => HashComponentMap.ContainsKey(x)))
+                    {
+                        if (ImGui.TreeNode("Hash components"))
+                        {
+                            foreach (var (hashComponentType, hashComponentPtr) in hashComponents)
+                            {
+                                if (HashComponentMap.TryGetValue(hashComponentType, out var data))
+                                {
+                                    var component = data.Item2(hashComponentPtr);
+                                    if (TreeNode(data.Item1, component))
+                                    {
+                                        Debug(component, id, $"hashComponent.{data.Item1}");
+                                        ImGui.TreePop();
+                                    }
+                                }
+                            }
                             ImGui.TreePop();
                         }
                     }
