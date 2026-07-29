@@ -579,6 +579,9 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                 if (isHovered)
                     Graphics.DrawLineInWorld(GameController.Player.GridPosNum, entityPosNum, 2f, pinColors.PinHovered.Value);
 
+                if (Settings.PinDisplay.ShowOnMap)
+                    Graphics.DrawTextWithBackground($"{index}", Graphics.GridToMap(entityPosNum, entityPosNum), SharpDX.Color.White, SharpDX.Color.Black);
+
                 if (!screenRect.Inflated(50, 50).Contains(screenPosPinBottom))
                     return;
 

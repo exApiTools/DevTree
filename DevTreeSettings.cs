@@ -55,6 +55,7 @@ public class DevSetting : ISettings
 [Submenu]
 public class PinDisplay
 {
+    public ToggleNode ShowOnMap { get; set; } = new ToggleNode(false);
     public PinColors Colors { get; set; } = new();
     public PinSizes PinSizes { get; set; } = new();
 }
