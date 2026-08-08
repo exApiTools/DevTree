@@ -1,27 +1,28 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Windows.Forms;
 using ExileCore;
 using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Components;
+using ExileCore.PoEMemory.Components.Hash;
 using ExileCore.PoEMemory.Elements;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using ImGuiNET;
-using System.Drawing;
-using System.Runtime.Loader;
-using System.Text.Json;
-using System.Threading.Tasks;
 using ItemFilterLibrary;
 using Microsoft.CodeAnalysis.Scripting;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 using Graphics = ExileCore.Graphics;
 using ImGuiVector4 = System.Numerics.Vector4;
 using Vector2 = System.Numerics.Vector2;
@@ -49,7 +50,7 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
 
     private static readonly Dictionary<ushort, (string, Func<long, RemoteMemoryObject>)> HashComponentMap = new Dictionary<ushort, (string, Func<long, RemoteMemoryObject>)>
     {
-        //[0x87B2] = ("Expedition2EncounterData", RemoteMemoryObject.GetObjectStatic<Expedition2EncounterData>)
+        [0xC4DF] = ("DeepwaterLantern", RemoteMemoryObject.GetObjectStatic<DeepwaterLantern>)
     };
 
     private readonly Dictionary<string, MethodInfo> _genericMethodCache = new Dictionary<string, MethodInfo>();
