@@ -58,6 +58,8 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
     private readonly Dictionary<IEquatable<ImmutableId>, int> _collectionSkipValues = [];
     private readonly Dictionary<IEquatable<ImmutableId>, string> _collectionSearchValues = [];
     private readonly Dictionary<IEquatable<ImmutableId>, string> _objectSearchValues = [];
+    private readonly Dictionary<IEquatable<ImmutableId>, string> _objectCastValues = [];
+    private readonly Dictionary<IEquatable<ImmutableId>, Type> _objectCastTypes = [];
     private readonly ConditionalWeakTable<object, Dictionary<MethodInfo, ParamsAndResult>> _methodParameterInvokeValues = new();
 
     private readonly ConditionalWeakTable<Type, ConditionalWeakTable<string, Tuple<Func<object, string>, Exception>>> _customDisplayPerStringCache = new();
@@ -1050,10 +1052,52 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
         }
     }
 
+    private static List<Type> CoreRmoType = typeof(RemoteMemoryObject).Assembly.GetTypes().Where(x => x.IsAssignableTo(typeof(RemoteMemoryObject))).ToList();
+
     private void DebugObjectProperties(object obj, MutableId id, Type type, string filter)
     {
         if (obj is RemoteMemoryObject asMemoryObject)
         {
+            if (ImGui.TreeNode($"Cast to another type##{id}_cast"))
+            {
+                var castValueOriginal = _objectCastValues.GetValueOrDefault(id) ?? "";
+                var castValue = castValueOriginal;
+                var castType = _objectCastTypes.GetOrAdd(id, s => null);
+                if (ImGuiHelpers.SearchCombobox($"{id}_searchType", ref castValue, ref castType, CoreRmoType,
+                        (t, f) => t.ToString().Contains(f, StringComparison.OrdinalIgnoreCase),
+                        t => t.ToString()))
+                {
+                    _objectCastTypes[id.AsImmutable] = castType;
+                    _objectCastValues[id.AsImmutable] = castValue;
+                }
+                else if (castValue != castValueOriginal)
+                {
+                    _objectCastValues[id.AsImmutable] = castValue;
+                }
+
+                if (castType != null)
+                {
+                    if (ImGui.Button("Clear cast"))
+                    {
+                        _objectCastTypes.Remove(id.AsImmutable);
+                        _objectCastValues.Remove(id.AsImmutable);
+                        castType = null;
+                    }
+                }
+
+                if (castType != null)
+                {
+                    var castObject = asMemoryObject.GetType().GetMethod("AsObject")?.MakeGenericMethod(castType).Invoke(asMemoryObject, null) as RemoteMemoryObject;
+                    if (castObject != null)
+                    {
+                        type = castType;
+                        obj = castObject;
+                        asMemoryObject = castObject;
+                    }
+                }
+                ImGui.TreePop();
+            }
+
             ImGui.Text("Address: ");
             ImGui.SameLine();
             CopyableTextButton($"{asMemoryObject.GetAddress(Settings.HideAddresses):X}", $"{asMemoryObject.Address:X}");
