@@ -1222,6 +1222,16 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             var propertyName = property.Name;
             try
             {
+                var propertyType = property.PropertyType;
+                var isSimpleType = IsSimpleType(propertyType);
+                var propertyValue = property.GetValue(obj);
+                var collection = propertyValue as ICollection;
+
+                if (!isSimpleType && collection == null && IsEnumerable(propertyType))
+                {
+                    continue;
+                }
+
                 if (_showExtendedInfo)
                 {
                     ImGui.Text(property.DeclaringType?.FullName ?? "");
@@ -1234,8 +1244,6 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                     ImGui.SameLine();
                 }
 
-                var propertyValue = property.GetValue(obj);
-
                 if (propertyValue == null)
                 {
                     ImGui.Text($"{propertyName}: ");
@@ -1244,58 +1252,46 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
                     continue;
                 }
 
-                var propertyType = property.PropertyType;
                 //Draw primitives
-                if (IsSimpleType(propertyType))
+                if (isSimpleType)
                 {
                     ImGui.Text($"{propertyName}: ");
                     ImGui.SameLine();
                     var propertyVal = propertyName == "Address" ? ((long)propertyValue).ToString("X") : ToStringWithHex(propertyValue, propertyType);
                     CopyableTextButton(propertyVal);
                 }
+                else if (collection != null)
+                {
+                    var strId = $"{propertyName} ##{property.DeclaringType.FullName}";
+                    DebugCollection(collection, id, propertyName, strId, true);
+                }
+                //Debug others objects
+                else if (propertyName.Equals("Value"))
+                {
+                    Debug(propertyValue, id, "property.Value");
+                }
                 else
                 {
-                    //Draw enumrable 
-                    var isEnumerable = IsEnumerable(propertyType);
-
-                    if (isEnumerable)
+                    string name;
+                    var propertyId = $"{propertyName}.{property.DeclaringType.FullName}";
+                    if (propertyValue is RemoteMemoryObject rmo)
+                        name = $"{propertyName} [{rmo.GetAddress(Settings.HideAddresses):X}]###{propertyId}";
+                    else
+                        name = $"{propertyName} ###{propertyId}";
+                    if (ColoredTreeNode(name, propertyValue switch
+                        {
+                            Element { IsValid: false } => Color.DarkRed,
+                            Element { IsVisible: true } => Color.Green,
+                            _ => Color.White
+                        }, propertyValue, out var isHovered))
                     {
-                        if (propertyValue is not ICollection collection)
-                            continue;
-
-                        var strId = $"{propertyName} ##{property.DeclaringType.FullName}";
-                        DebugCollection(collection, id, propertyName, strId, true);
+                        Debug(propertyValue, id, $"property.{propertyId}");
+                        ImGui.TreePop();
                     }
 
-                    //Debug others objects
-                    else
+                    if (propertyValue is Element { Width: > 0, Height: > 0 } e && isHovered)
                     {
-                        if (propertyName.Equals("Value"))
-                            Debug(propertyValue, id, "property.Value");
-                        else
-                        {
-                            string name;
-                            var propertyId = $"{propertyName}.{property.DeclaringType.FullName}";
-                            if (propertyValue is RemoteMemoryObject rmo)
-                                name = $"{propertyName} [{rmo.GetAddress(Settings.HideAddresses):X}]###{propertyId}";
-                            else
-                                name = $"{propertyName} ###{propertyId}";
-                            if (ColoredTreeNode(name, propertyValue switch
-                                {
-                                    Element { IsValid: false } => Color.DarkRed,
-                                    Element { IsVisible: true } => Color.Green,
-                                    _ => Color.White
-                                }, propertyValue, out var isHovered))
-                            {
-                                Debug(propertyValue, id, $"property.{propertyId}");
-                                ImGui.TreePop();
-                            }
-
-                            if (propertyValue is Element { Width: > 0, Height: > 0 } e && isHovered)
-                            {
-                                Graphics.DrawFrame(e.GetClientRectCache, Settings.FrameColor, 2);
-                            }
-                        }
+                        Graphics.DrawFrame(e.GetClientRectCache, Settings.FrameColor, 2);
                     }
                 }
             }
@@ -1320,9 +1316,10 @@ public partial class DevPlugin : BaseSettingsPlugin<DevSetting>
             }
             else
             {
-                ImGui.Indent();
+                float spacing = ImGui.GetStyle().IndentSpacing;
+                ImGui.Dummy(new Vector2(spacing, 1));
+                ImGui.SameLine(0, 0);
                 ImGui.TextColored(Color.Red.ToImguiVec4(), $"{propertyName} [Empty]");
-                ImGui.Unindent();
             }
         }
         finally
